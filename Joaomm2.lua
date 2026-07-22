@@ -1,175 +1,241 @@
--- Joao mm2 V8 - TWEEN NA MOEDA + FLING + TIRO FIX
-getgenv().SecureMode = false
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
-local Window = Rayfield:CreateWindow({
-   Name = "Joao mm2",
-   LoadingTitle = "Joao mm2 V8",
-   LoadingSubtitle = "Tween moeda dentro + Fling real",
-   ConfigurationSaving = { Enabled = false },
-   KeySystem = false
-})
+-- LocalScript para Murder Mystery 2 - Detector de Papéis
+-- Cole este script em StarterPlayer > StarterCharacterScripts ou StarterPlayer > StarterPlayerScripts
 
-local FarmTab = Window:CreateTab("Farm", 4483362458)
-local CombatTab = Window:CreateTab("Combate", 4483362458)
-local OpsTab = Window:CreateTab("Ops", 4483362458)
-local ESPTab = Window:CreateTab("ESP", 4483362458)
-
-local LP = game.Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
-local Speed = 40
-local AutoCoin = false
-local ESPOn = false
-local CurrentTween = nil
+-- Configurações
+local CONFIG = {
+    UpdateInterval = 0.5, -- Atualiza a cada 0.5 segundos
+    ShowNotifications = true,
+    NotificationDuration = 3,
+}
 
-local function GetRole(p)
-    if not p.Character then return "Innocent" end
-    if p.Character:FindFirstChild("Knife", true) or p:FindFirstChild("Knife", true) then return "Murderer" end
-    if p.Character:FindFirstChild("Gun", true) or p.Character:FindFirstChild("Revolver", true) or p:FindFirstChild("Gun", true) then return "Sheriff" end
-    return "Innocent"
+-- Variáveis globais
+local myRole = "unknown"
+local lastUpdate = 0
+local roleChanged = false
+
+-- Função para detectar o papel do jogador
+local function detectMyRole()
+    local newRole = "unknown"
+    
+    -- Método 1: Verificar objetos/valores no personagem
+    if character:FindFirstChild("Knife") then
+        newRole = "Murderer"
+    elseif character:FindFirstChild("Gun") then
+        newRole = "Sheriff"
+    else
+        newRole = "Innocent"
+    end
+    
+    -- Método 2: Verificar tags do HumaoidRootPart
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart then
+        local roleTag = humanoidRootPart:FindFirstChild("Role")
+        if roleTag and roleTag:IsA("StringValue") then
+            newRole = roleTag.Value
+        end
+    end
+    
+    -- Verificar se o papel mudou
+    if newRole ~= myRole then
+        roleChanged = true
+        myRole = newRole
+        return true
+    end
+    
+    return false
 end
 
-local function GetSortedCoins()
-    local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return {} end
-    local CC = workspace:FindFirstChild("CoinContainer", true)
-    if not CC then return {} end
-    local list = {}
-    for _,coin in pairs(CC:GetChildren()) do
-        if coin.Name=="Coin_Server" and coin:IsA("BasePart") and coin.Parent and coin.Position.Y > -10 then
-            local d = (HRP.Position - coin.Position).Magnitude
-            if d < 200 then -- só perto pra não dar kick
-                table.insert(list, {c=coin, dist=d})
+-- Função para detectar papéis de outros jogadores
+local function detectOtherRoles()
+    local roles = {}
+    
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character then
+            local otherChar = otherPlayer.Character
+            local otherRole = "Unknown"
+            
+            -- Verificar armas
+            if otherChar:FindFirstChild("Knife") then
+                otherRole = "Murderer"
+            elseif otherChar:FindFirstChild("Gun") then
+                otherRole = "Sheriff"
+            else
+                otherRole = "Innocent"
             end
+            
+            roles[otherPlayer.Name] = otherRole
         end
     end
-    table.sort(list, function(a,b) return a.dist < b.dist end)
-    return list
+    
+    return roles
 end
 
--- ANTI PAREDE
-task.spawn(function()
-    while task.wait() do
-        if AutoCoin then
-            pcall(function()
-                for _,v in pairs(LP.Character:GetDescendants()) do
-                    if v:IsA("BasePart") and v.CanCollide then v.CanCollide=false end
-                end
-            end)
-        end
-    end
-end)
-
--- FARM - TWEEN INDO DENTRO DA MOEDA
-FarmTab:CreateInput({ Name="Velocidade", PlaceholderText="40 normal, 70 rapido", RemoveTextAfterFocusLost=false, Callback=function(txt) local n=tonumber(txt) if n then Speed=n end end, })
-FarmTab:CreateToggle({ Name="Auto Coletar Moeda", CurrentValue=false, Flag="AC", Callback=function(v)
-    AutoCoin=v
-    if not v and CurrentTween then
-        pcall(function() CurrentTween:Cancel() end)
-    end
-end, })
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if AutoCoin then
-            local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            if not HRP then continue end
-            local coins = GetSortedCoins()
-            for _,data in ipairs(coins) do
-                if not AutoCoin then break end
-                local coin = data.c
-                if not coin or not coin.Parent then continue end
-                local dist = (HRP.Position - coin.Position).Magnitude
-                local tempo = dist / Speed
-                if tempo < 0.15 then tempo = 0.15 end
-                if tempo > 1.5 then tempo = 1.5 end
-                -- TWEEN DIRETO DENTRO DA MOEDA
-                local tw = TweenService:Create(HRP, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = coin.CFrame})
-                CurrentTween = tw
-                tw:Play()
-                tw.Completed:Wait()
-                task.wait(0.05)
-            end
-        end
-    end
-end)
-
--- ESP
-ESPTab:CreateToggle({ Name="ESP", CurrentValue=false, Flag="ESP", Callback=function(v) ESPOn=v if not v then for _,p in pairs(Players:GetPlayers()) do if p.Character and p.Character:FindFirstChild("JoaoESP") then p.Character.JoaoESP:Destroy() end end end end, })
-task.spawn(function()
-    while task.wait(0.5) do
-        if ESPOn then
-            for _,p in pairs(Players:GetPlayers()) do
-                if p~=LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local role=GetRole(p)
-                    local hl=p.Character:FindFirstChild("JoaoESP")
-                    if not hl then hl=Instance.new("Highlight",p.Character) hl.Name="JoaoESP" hl.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop hl.FillTransparency=0.5 hl.OutlineTransparency=0 end
-                    if role=="Innocent" then hl.FillColor=Color3.fromRGB(0,255,0) elseif role=="Sheriff" then hl.FillColor=Color3.fromRGB(0,120,255) else hl.FillColor=Color3.fromRGB(255,0,0) end
-                end
-            end
-        end
-    end
-end)
-
--- OPS - FLING QUE FUNCIONA, SÓ NO ALVO
-local function FlingTarget(target)
-    if not target or not target.Character then return end
-    local THRP = target.Character:FindFirstChild("HumanoidRootPart")
-    local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-    if not THRP or not HRP then return end
-    local Old = HRP.CFrame
-    local BAV = Instance.new("BodyAngularVelocity")
-    BAV.AngularVelocity = Vector3.new(0, 10000, 0)
-    BAV.MaxTorque = Vector3.new(0, 9e9, 0)
-    BAV.P = 9e9
-    BAV.Parent = HRP
-    for i=1,18 do
-        HRP.CFrame = THRP.CFrame * CFrame.new(0,0,0.5)
-        task.wait(0.06)
-    end
-    BAV:Destroy()
-    HRP.CFrame = Old
-    HRP.Velocity = Vector3.new(0,0,0)
-end
-
-OpsTab:CreateButton({ Name="Fling Xerife", Callback=function() for _,p in pairs(Players:GetPlayers()) do if GetRole(p)=="Sheriff" then FlingTarget(p) break end end end, })
-OpsTab:CreateButton({ Name="Fling Assassino", Callback=function() for _,p in pairs(Players:GetPlayers()) do if GetRole(p)=="Murderer" then FlingTarget(p) break end end end, })
-
--- COMBATE - TIRO INTELIGENTE QUE ATIRA MESMO
-local SmartGui
-local function CreateSmartButton()
-    if SmartGui then SmartGui:Destroy() end
-    local UI = gethui and gethui() or LP.PlayerGui
-    SmartGui = Instance.new("ScreenGui", UI) SmartGui.Name="SmartShot"
-    local Btn = Instance.new("TextButton", SmartGui) Btn.Size=UDim2.new(0,75,0,75) Btn.Position=UDim2.new(0.8,0,0.5,0) Btn.Text="TIRO" Btn.TextScaled=true Btn.BackgroundColor3=Color3.fromRGB(255,0,0) Btn.TextColor3=Color3.new(1,1,1) Btn.Active=true Btn.Draggable=true Instance.new("UICorner", Btn)
-    Btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            local char=LP.Character
-            local gun=char:FindFirstChild("Gun") or char:FindFirstChild("Revolver")
-            if not gun then
-                local g = LP.Backpack:FindFirstChild("Gun") or LP.Backpack:FindFirstChild("Revolver")
-                if g then char.Humanoid:EquipTool(g) task.wait(0.3) end
-                gun=char:FindFirstChild("Gun") or char:FindFirstChild("Revolver")
-            end
-            if not gun then return end
-            local murder=nil for _,pl in pairs(Players:GetPlayers()) do if GetRole(pl)=="Murderer" and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then murder=pl break end end
-            if not murder then return end
-            local pos = murder.Character.HumanoidRootPart.Position
-            -- mira
-            workspace.CurrentCamera.CFrame = CFrame.lookAt(workspace.CurrentCamera.CFrame.Position, pos)
-            -- atira em todos os remotes possíveis
-            for _,r in pairs(game.ReplicatedStorage:GetDescendants()) do
-                if r:IsA("RemoteEvent") and r.Name:lower():find("shoot") then
-                    r:FireServer(pos)
-                    r:FireServer(pos, pos)
-                end
-            end
-            gun:Activate()
+-- Função para exibir notificação
+local function showNotification(title, text, duration)
+    duration = duration or CONFIG.NotificationDuration
+    
+    if CONFIG.ShowNotifications then
+        -- Se há o serviço de notificações (algumas versões do Roblox)
+        local success, err = pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = duration,
+            })
         end)
-    end)
+    end
 end
 
-CombatTab:CreateToggle({ Name="Tiro Inteligente", CurrentValue=false, Flag="Smart", Callback=function(v) if v then CreateSmartButton() else if SmartGui then SmartGui:Destroy() end end end, })
-CombatTab:CreateButton({ Name="Tween Arma e Volta", Callback=function() task.spawn(function() local HRP=LP.Character.HumanoidRootPart local Old=HRP.CFrame for _,o in pairs(workspace:GetDescendants()) do if o.Name=="GunDrop" and o:IsA("BasePart") then local tw=TweenService:Create(HRP, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame=o.CFrame}) tw:Play() tw.Completed:Wait() task.wait(0.2) HRP.CFrame=Old break end end end) end, })
-CombatTab:CreateButton({ Name="Matar Todos [Assassino]", Callback=function() if GetRole(LP)~="Murderer" then return end local knife=LP.Character:FindFirstChild("Knife") or LP.Backpack:FindFirstChild("Knife") if knife then LP.Character.Humanoid:EquipTool(knife) end for _,p in pairs(Players:GetPlayers()) do if p~=LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then p.Character.HumanoidRootPart.CFrame=LP.Character.HumanoidRootPart.CFrame*CFrame.new(0,0,-2) task.wait(0.2) end end end, })
+-- Função para criar interface de papéis
+local function createRoleUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "RoleDetectorUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    
+    -- Frame principal
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 300, 0, 150)
+    mainFrame.Position = UDim2.new(0, 10, 0, 10)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    -- Adicionar canto arredondado (UICorner)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+    
+    -- Título
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "Title"
+    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextScaled = true
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "MM2 - Detector de Papéis"
+    titleLabel.Parent = mainFrame
+    
+    -- Label do meu papel
+    local myRoleLabel = Instance.new("TextLabel")
+    myRoleLabel.Name = "MyRoleLabel"
+    myRoleLabel.Size = UDim2.new(1, -10, 0, 35)
+    myRoleLabel.Position = UDim2.new(0, 5, 0, 35)
+    myRoleLabel.BackgroundTransparency = 1
+    myRoleLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+    myRoleLabel.TextScaled = true
+    myRoleLabel.Font = Enum.Font.Gotham
+    myRoleLabel.Text = "Seu papel: Aguardando..."
+    myRoleLabel.Parent = mainFrame
+    
+    -- Label de outros papéis
+    local othersLabel = Instance.new("TextLabel")
+    othersLabel.Name = "OthersLabel"
+    othersLabel.Size = UDim2.new(1, -10, 0, 35)
+    othersLabel.Position = UDim2.new(0, 5, 0, 75)
+    othersLabel.BackgroundTransparency = 1
+    othersLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    othersLabel.TextScaled = true
+    othersLabel.Font = Enum.Font.Gotham
+    othersLabel.TextSize = 12
+    othersLabel.Text = "Jogadores: Detectando..."
+    othersLabel.Parent = mainFrame
+    
+    return screenGui, myRoleLabel, othersLabel
+end
+
+-- Função principal de update
+local function update()
+    local currentTime = tick()
+    
+    if currentTime - lastUpdate < CONFIG.UpdateInterval then
+        return
+    end
+    
+    lastUpdate = currentTime
+    
+    -- Detectar meu papel
+    if detectMyRole() then
+        print("Papel alterado para: " .. myRole)
+        showNotification("MM2 Detector", "Seu papel: " .. myRole, 2)
+    end
+    
+    -- Detectar papéis dos outros
+    local otherRoles = detectOtherRoles()
+    
+    -- Atualizar UI se existir
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then
+        local roleUI = playerGui:FindFirstChild("RoleDetectorUI")
+        if roleUI then
+            local myRoleLabel = roleUI.MainFrame:FindFirstChild("MyRoleLabel")
+            local othersLabel = roleUI.MainFrame:FindFirstChild("OthersLabel")
+            
+            if myRoleLabel then
+                -- Colorir baseado no papel
+                if myRole == "Murderer" then
+                    myRoleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                    myRoleLabel.Text = "🔪 Seu papel: ASSASSINO"
+                elseif myRole == "Sheriff" then
+                    myRoleLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
+                    myRoleLabel.Text = "🔫 Seu papel: XERIFE"
+                else
+                    myRoleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                    myRoleLabel.Text = "👤 Seu papel: INOCENTE"
+                end
+            end
+            
+            if othersLabel then
+                local roleText = "Papéis dos outros:\n"
+                local count = 0
+                for playerName, role in pairs(otherRoles) do
+                    if count < 3 then -- Mostrar apenas 3 primeiros
+                        roleText = roleText .. playerName .. ": " .. role .. "\n"
+                        count = count + 1
+                    end
+                end
+                
+                if count == 0 then
+                    roleText = "Nenhum outro jogador detectado"
+                end
+                
+                othersLabel.Text = roleText
+            end
+        end
+    end
+end
+
+-- Função para monitorar mudanças de personagem
+local function onCharacterRespawned(newCharacter)
+    character = newCharacter
+    myRole = "unknown"
+    roleChanged = true
+    print("Personagem respawned, detectando novo papel...")
+end
+
+-- Inicialização
+print("MM2 Role Detector iniciado!")
+print("Seu papel atual: " .. myRole)
+
+-- Criar UI
+local screenGui, myRoleLabel, othersLabel = createRoleUI()
+
+-- Conectar eventos
+if player.Character then
+    player.CharacterAdded:Connect(onCharacterRespawned)
+end
+
+-- Loop de atualização
+RunService.RenderStepped:Connect(update)
+
+-- Notificação de script carregado
+showNotification("MM2 Detector", "Script de detecção de papéis ativado!", 2)
