@@ -1,10 +1,10 @@
--- Joao mm2 V7 - FIX VOID + FIX KICK
+-- Joao mm2 V8 - TWEEN NA MOEDA + FLING + TIRO FIX
 getgenv().SecureMode = false
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
 local Window = Rayfield:CreateWindow({
    Name = "Joao mm2",
-   LoadingTitle = "Joao mm2 V7",
-   LoadingSubtitle = "Fling + Coin sem kick",
+   LoadingTitle = "Joao mm2 V8",
+   LoadingSubtitle = "Tween moeda dentro + Fling real",
    ConfigurationSaving = { Enabled = false },
    KeySystem = false
 })
@@ -15,11 +15,13 @@ local OpsTab = Window:CreateTab("Ops", 4483362458)
 local ESPTab = Window:CreateTab("ESP", 4483362458)
 
 local LP = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 
-local Speed = 35
+local Speed = 40
 local AutoCoin = false
 local ESPOn = false
+local CurrentTween = nil
 
 local function GetRole(p)
     if not p.Character then return "Innocent" end
@@ -35,36 +37,60 @@ local function GetSortedCoins()
     if not CC then return {} end
     local list = {}
     for _,coin in pairs(CC:GetChildren()) do
-        if coin.Name=="Coin_Server" and coin:IsA("BasePart") and coin.Parent and coin.Position.Y > -15 then
+        if coin.Name=="Coin_Server" and coin:IsA("BasePart") and coin.Parent and coin.Position.Y > -10 then
             local d = (HRP.Position - coin.Position).Magnitude
-            if d < 300 then table.insert(list, {c=coin, dist=d}) end
+            if d < 200 then -- só perto pra não dar kick
+                table.insert(list, {c=coin, dist=d})
+            end
         end
     end
     table.sort(list, function(a,b) return a.dist < b.dist end)
     return list
 end
 
--- FARM - AGORA PUXA A MOEDA PRA VOCÊ, SEM TP, SEM KICK
-FarmTab:CreateInput({ Name="Velocidade", PlaceholderText="0.1 rapido 0.2 normal", RemoveTextAfterFocusLost=false, Callback=function(txt) local n=tonumber(txt) if n then Speed=n end end, })
-FarmTab:CreateToggle({ Name="Auto Coletar Moeda", CurrentValue=false, Flag="AC", Callback=function(v) AutoCoin=v end, })
-
+-- ANTI PAREDE
 task.spawn(function()
-    while task.wait(0.12) do
+    while task.wait() do
         if AutoCoin then
             pcall(function()
-                local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                if not HRP then return end
-                local coins = GetSortedCoins()
-                for _,data in ipairs(coins) do
-                    if not AutoCoin then break end
-                    local coin = data.c
-                    if coin and coin.Parent then
-                        -- PUXA A MOEDA PRA DENTRO DE VOCÊ, NÃO VOCÊ PRA MOEDA
-                        coin.CFrame = HRP.CFrame
-                        task.wait(Speed or 0.12)
-                    end
+                for _,v in pairs(LP.Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.CanCollide then v.CanCollide=false end
                 end
             end)
+        end
+    end
+end)
+
+-- FARM - TWEEN INDO DENTRO DA MOEDA
+FarmTab:CreateInput({ Name="Velocidade", PlaceholderText="40 normal, 70 rapido", RemoveTextAfterFocusLost=false, Callback=function(txt) local n=tonumber(txt) if n then Speed=n end end, })
+FarmTab:CreateToggle({ Name="Auto Coletar Moeda", CurrentValue=false, Flag="AC", Callback=function(v)
+    AutoCoin=v
+    if not v and CurrentTween then
+        pcall(function() CurrentTween:Cancel() end)
+    end
+end, })
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if AutoCoin then
+            local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            if not HRP then continue end
+            local coins = GetSortedCoins()
+            for _,data in ipairs(coins) do
+                if not AutoCoin then break end
+                local coin = data.c
+                if not coin or not coin.Parent then continue end
+                local dist = (HRP.Position - coin.Position).Magnitude
+                local tempo = dist / Speed
+                if tempo < 0.15 then tempo = 0.15 end
+                if tempo > 1.5 then tempo = 1.5 end
+                -- TWEEN DIRETO DENTRO DA MOEDA
+                local tw = TweenService:Create(HRP, TweenInfo.new(tempo, Enum.EasingStyle.Linear), {CFrame = coin.CFrame})
+                CurrentTween = tw
+                tw:Play()
+                tw.Completed:Wait()
+                task.wait(0.05)
+            end
         end
     end
 end)
@@ -86,33 +112,31 @@ task.spawn(function()
     end
 end)
 
--- OPS - FLING NOVO QUE NÃO TE JOGA PRO VOID
+-- OPS - FLING QUE FUNCIONA, SÓ NO ALVO
 local function FlingTarget(target)
     if not target or not target.Character then return end
     local THRP = target.Character:FindFirstChild("HumanoidRootPart")
     local HRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if not THRP or not HRP then return end
     local Old = HRP.CFrame
-    -- chega perto pra pegar posse
-    HRP.CFrame = THRP.CFrame * CFrame.new(0,0,2)
-    task.wait(0.2)
-    for i=1,12 do
-        pcall(function()
-            THRP.AssemblyLinearVelocity = Vector3.new(0, 9000, 0)
-            THRP.AssemblyAngularVelocity = Vector3.new(9999, 9999)
-            THRP.Velocity = Vector3.new(0, 9000, 0)
-        end)
-        task.wait(0.07)
+    local BAV = Instance.new("BodyAngularVelocity")
+    BAV.AngularVelocity = Vector3.new(0, 10000, 0)
+    BAV.MaxTorque = Vector3.new(0, 9e9, 0)
+    BAV.P = 9e9
+    BAV.Parent = HRP
+    for i=1,18 do
+        HRP.CFrame = THRP.CFrame * CFrame.new(0,0,0.5)
+        task.wait(0.06)
     end
+    BAV:Destroy()
     HRP.CFrame = Old
     HRP.Velocity = Vector3.new(0,0,0)
-    HRP.AssemblyLinearVelocity = Vector3.new(0,0,0)
 end
 
 OpsTab:CreateButton({ Name="Fling Xerife", Callback=function() for _,p in pairs(Players:GetPlayers()) do if GetRole(p)=="Sheriff" then FlingTarget(p) break end end end, })
 OpsTab:CreateButton({ Name="Fling Assassino", Callback=function() for _,p in pairs(Players:GetPlayers()) do if GetRole(p)=="Murderer" then FlingTarget(p) break end end end, })
 
--- COMBATE
+-- COMBATE - TIRO INTELIGENTE QUE ATIRA MESMO
 local SmartGui
 local function CreateSmartButton()
     if SmartGui then SmartGui:Destroy() end
@@ -123,17 +147,29 @@ local function CreateSmartButton()
         pcall(function()
             local char=LP.Character
             local gun=char:FindFirstChild("Gun") or char:FindFirstChild("Revolver")
-            if not gun then char.Humanoid:EquipTool(LP.Backpack:FindFirstChild("Gun") or LP.Backpack:FindFirstChild("Revolver")) task.wait(0.2) gun=char:FindFirstChild("Gun") or char:FindFirstChild("Revolver") end
+            if not gun then
+                local g = LP.Backpack:FindFirstChild("Gun") or LP.Backpack:FindFirstChild("Revolver")
+                if g then char.Humanoid:EquipTool(g) task.wait(0.3) end
+                gun=char:FindFirstChild("Gun") or char:FindFirstChild("Revolver")
+            end
             if not gun then return end
             local murder=nil for _,pl in pairs(Players:GetPlayers()) do if GetRole(pl)=="Murderer" and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then murder=pl break end end
             if not murder then return end
-            local target=murder.Character.HumanoidRootPart.Position
-            for _,r in pairs(game.ReplicatedStorage:GetDescendants()) do if r:IsA("RemoteEvent") and r.Name:lower()=="shoot" then pcall(function() r:FireServer(target) end) end end
+            local pos = murder.Character.HumanoidRootPart.Position
+            -- mira
+            workspace.CurrentCamera.CFrame = CFrame.lookAt(workspace.CurrentCamera.CFrame.Position, pos)
+            -- atira em todos os remotes possíveis
+            for _,r in pairs(game.ReplicatedStorage:GetDescendants()) do
+                if r:IsA("RemoteEvent") and r.Name:lower():find("shoot") then
+                    r:FireServer(pos)
+                    r:FireServer(pos, pos)
+                end
+            end
             gun:Activate()
         end)
     end)
 end
 
 CombatTab:CreateToggle({ Name="Tiro Inteligente", CurrentValue=false, Flag="Smart", Callback=function(v) if v then CreateSmartButton() else if SmartGui then SmartGui:Destroy() end end end, })
-CombatTab:CreateButton({ Name="Tween Arma e Volta", Callback=function() task.spawn(function() local HRP=LP.Character.HumanoidRootPart local Old=HRP.CFrame for _,o in pairs(workspace:GetDescendants()) do if o.Name=="GunDrop" and o:IsA("BasePart") then o.CFrame=HRP.CFrame task.wait(0.2) break end end end) end, })
+CombatTab:CreateButton({ Name="Tween Arma e Volta", Callback=function() task.spawn(function() local HRP=LP.Character.HumanoidRootPart local Old=HRP.CFrame for _,o in pairs(workspace:GetDescendants()) do if o.Name=="GunDrop" and o:IsA("BasePart") then local tw=TweenService:Create(HRP, TweenInfo.new(0.5, Enum.EasingStyle.Linear), {CFrame=o.CFrame}) tw:Play() tw.Completed:Wait() task.wait(0.2) HRP.CFrame=Old break end end end) end, })
 CombatTab:CreateButton({ Name="Matar Todos [Assassino]", Callback=function() if GetRole(LP)~="Murderer" then return end local knife=LP.Character:FindFirstChild("Knife") or LP.Backpack:FindFirstChild("Knife") if knife then LP.Character.Humanoid:EquipTool(knife) end for _,p in pairs(Players:GetPlayers()) do if p~=LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then p.Character.HumanoidRootPart.CFrame=LP.Character.HumanoidRootPart.CFrame*CFrame.new(0,0,-2) task.wait(0.2) end end end, })
