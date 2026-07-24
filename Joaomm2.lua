@@ -1,160 +1,314 @@
--- LocalScript para Murder Mystery 2 - Detector de Papéis
--- Cole este script em StarterPlayer > StarterCharacterScripts ou StarterPlayer > StarterPlayerScripts
+-- LocalScript para Muscle Legends - Dashboard de Stats
+-- Cole em StarterPlayer > StarterPlayerScripts
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
 -- Configurações
 local CONFIG = {
-    UpdateInterval = 0.5, -- Atualiza a cada 0.5 segundos
-    ShowNotifications = true,
-    NotificationDuration = 3,
+    UpdateInterval = 0.5,
+    ToggleKey = Enum.KeyCode.F1, -- Pressionar F1 para mostrar/esconder
+    ShowOnStart = true,
+    AutoFarmEnabled = false,
 }
 
--- Variáveis globais
-local myRole = "unknown"
+-- Variáveis de controle
+local isDashboardVisible = CONFIG.ShowOnStart
+local isAutoFarming = CONFIG.AutoFarmEnabled
 local lastUpdate = 0
-local roleChanged = false
+local playerStats = {
+    Level = 0,
+    Strength = 0,
+    Money = 0,
+    Experience = 0,
+    MaxHealth = 0,
+}
 
--- Função para detectar o papel do jogador
-local function detectMyRole()
-    local newRole = "unknown"
+-- Função para obter stats do jogador
+local function getPlayerStats()
+    local stats = {
+        Level = 0,
+        Strength = 0,
+        Money = 0,
+        Experience = 0,
+        MaxHealth = humanoid.MaxHealth or 100,
+    }
     
-    -- Método 1: Verificar objetos/valores no personagem
-    if character:FindFirstChild("Knife") then
-        newRole = "Murderer"
-    elseif character:FindFirstChild("Gun") then
-        newRole = "Sheriff"
-    else
-        newRole = "Innocent"
-    end
-    
-    -- Método 2: Verificar tags do HumaoidRootPart
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart then
-        local roleTag = humanoidRootPart:FindFirstChild("Role")
-        if roleTag and roleTag:IsA("StringValue") then
-            newRole = roleTag.Value
+    -- Procurar valores/stats no personagem ou backpack
+    if character:FindFirstChild("Stats") then
+        local statsFolder = character.Stats
+        if statsFolder:FindFirstChild("Level") then
+            stats.Level = statsFolder.Level.Value
+        end
+        if statsFolder:FindFirstChild("Strength") then
+            stats.Strength = statsFolder.Strength.Value
+        end
+        if statsFolder:FindFirstChild("Experience") then
+            stats.Experience = statsFolder.Experience.Value
         end
     end
     
-    -- Verificar se o papel mudou
-    if newRole ~= myRole then
-        roleChanged = true
-        myRole = newRole
-        return true
-    end
-    
-    return false
-end
-
--- Função para detectar papéis de outros jogadores
-local function detectOtherRoles()
-    local roles = {}
-    
-    for _, otherPlayer in pairs(Players:GetPlayers()) do
-        if otherPlayer ~= player and otherPlayer.Character then
-            local otherChar = otherPlayer.Character
-            local otherRole = "Unknown"
-            
-            -- Verificar armas
-            if otherChar:FindFirstChild("Knife") then
-                otherRole = "Murderer"
-            elseif otherChar:FindFirstChild("Gun") then
-                otherRole = "Sheriff"
-            else
-                otherRole = "Innocent"
-            end
-            
-            roles[otherPlayer.Name] = otherRole
+    -- Procurar moeda
+    if player:FindFirstChild("leaderstats") then
+        local leaderstats = player.leaderstats
+        if leaderstats:FindFirstChild("Money") then
+            stats.Money = leaderstats.Money.Value
+        end
+        if leaderstats:FindFirstChild("Level") then
+            stats.Level = leaderstats.Level.Value
         end
     end
     
-    return roles
+    return stats
 end
 
--- Função para exibir notificação
-local function showNotification(title, text, duration)
-    duration = duration or CONFIG.NotificationDuration
-    
-    if CONFIG.ShowNotifications then
-        -- Se há o serviço de notificações (algumas versões do Roblox)
-        local success, err = pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = title,
-                Text = text,
-                Duration = duration,
-            })
-        end)
-    end
-end
-
--- Função para criar interface de papéis
-local function createRoleUI()
+-- Função para criar o Dashboard
+local function createDashboard()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "RoleDetectorUI"
+    screenGui.Name = "MuscleLegendsDashboard"
     screenGui.ResetOnSpawn = false
-    screenGui.Parent = player:WaitForChild("PlayerGui")
+    screenGui.Parent = playerGui
     
-    -- Frame principal
+    -- Frame principal (redondeado)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 300, 0, 150)
-    mainFrame.Position = UDim2.new(0, 10, 0, 10)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.Size = UDim2.new(0, 350, 0, 400)
+    mainFrame.Position = UDim2.new(0, 15, 0, 15)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
     
-    -- Adicionar canto arredondado (UICorner)
+    -- Adicionar cantos arredondados
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
+    
+    -- Adicionar stroke/borda
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 200, 255)
+    stroke.Thickness = 2
+    stroke.Parent = mainFrame
+    
+    -- Cabeçalho
+    local headerFrame = Instance.new("Frame")
+    headerFrame.Name = "Header"
+    headerFrame.Size = UDim2.new(1, 0, 0, 50)
+    headerFrame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    headerFrame.BorderSizePixel = 0
+    headerFrame.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 12)
+    headerCorner.Parent = headerFrame
     
     -- Título
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "Title"
-    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.Size = UDim2.new(1, -60, 1, 0)
     titleLabel.BackgroundTransparency = 1
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextScaled = true
-    titleLabel.TextSize = 18
+    titleLabel.TextSize = 20
     titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.Text = "MM2 - Detector de Papéis"
-    titleLabel.Parent = mainFrame
+    titleLabel.Text = "💪 MUSCLE LEGENDS"
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = headerFrame
     
-    -- Label do meu papel
-    local myRoleLabel = Instance.new("TextLabel")
-    myRoleLabel.Name = "MyRoleLabel"
-    myRoleLabel.Size = UDim2.new(1, -10, 0, 35)
-    myRoleLabel.Position = UDim2.new(0, 5, 0, 35)
-    myRoleLabel.BackgroundTransparency = 1
-    myRoleLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-    myRoleLabel.TextScaled = true
-    myRoleLabel.Font = Enum.Font.Gotham
-    myRoleLabel.Text = "Seu papel: Aguardando..."
-    myRoleLabel.Parent = mainFrame
+    -- Botão de fechar
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Size = UDim2.new(0, 40, 0, 40)
+    closeButton.Position = UDim2.new(1, -45, 0, 5)
+    closeButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 18
+    closeButton.Text = "✕"
+    closeButton.Parent = headerFrame
     
-    -- Label de outros papéis
-    local othersLabel = Instance.new("TextLabel")
-    othersLabel.Name = "OthersLabel"
-    othersLabel.Size = UDim2.new(1, -10, 0, 35)
-    othersLabel.Position = UDim2.new(0, 5, 0, 75)
-    othersLabel.BackgroundTransparency = 1
-    othersLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    othersLabel.TextScaled = true
-    othersLabel.Font = Enum.Font.Gotham
-    othersLabel.TextSize = 12
-    othersLabel.Text = "Jogadores: Detectando..."
-    othersLabel.Parent = mainFrame
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 8)
+    closeCorner.Parent = closeButton
     
-    return screenGui, myRoleLabel, othersLabel
+    closeButton.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+        isDashboardVisible = false
+    end)
+    
+    -- Container de stats
+    local statsContainer = Instance.new("Frame")
+    statsContainer.Name = "StatsContainer"
+    statsContainer.Size = UDim2.new(1, -20, 1, -70)
+    statsContainer.Position = UDim2.new(0, 10, 0, 55)
+    statsContainer.BackgroundTransparency = 1
+    statsContainer.Parent = mainFrame
+    
+    -- UIListLayout para organizar stats
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 10)
+    listLayout.FillDirection = Enum.FillDirection.Vertical
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = statsContainer
+    
+    -- Função para criar um stat item
+    local function createStatItem(name, value, layoutOrder)
+        local statFrame = Instance.new("Frame")
+        statFrame.Name = name .. "Frame"
+        statFrame.Size = UDim2.new(1, 0, 0, 50)
+        statFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        statFrame.BorderSizePixel = 0
+        statFrame.LayoutOrder = layoutOrder
+        statFrame.Parent = statsContainer
+        
+        local statCorner = Instance.new("UICorner")
+        statCorner.CornerRadius = UDim.new(0, 8)
+        statCorner.Parent = statFrame
+        
+        -- Nome do stat
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(0, 150, 1, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+        nameLabel.TextSize = 14
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.Text = name
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = statFrame
+        
+        -- Valor do stat
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Name = "ValueLabel"
+        valueLabel.Size = UDim2.new(0, 150, 1, 0)
+        valueLabel.Position = UDim2.new(1, -155, 0, 0)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+        valueLabel.TextSize = 16
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.Text = tostring(value)
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = statFrame
+        
+        return valueLabel
+    end
+    
+    -- Criar items de stats
+    local levelLabel = createStatItem("📊 Level", playerStats.Level, 1)
+    local strengthLabel = createStatItem("💪 Força", playerStats.Strength, 2)
+    local moneyLabel = createStatItem("💵 Moeda", playerStats.Money, 3)
+    local healthLabel = createStatItem("❤️ Saúde", humanoid.Health, 4)
+    
+    -- Frame inferior com botões
+    local bottomFrame = Instance.new("Frame")
+    bottomFrame.Name = "BottomFrame"
+    bottomFrame.Size = UDim2.new(1, 0, 0, 45)
+    bottomFrame.Position = UDim2.new(0, 0, 1, -45)
+    bottomFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    bottomFrame.BorderSizePixel = 0
+    bottomFrame.Parent = mainFrame
+    
+    local bottomCorner = Instance.new("UICorner")
+    bottomCorner.CornerRadius = UDim.new(0, 12)
+    bottomCorner.Parent = bottomFrame
+    
+    -- Botão de Auto-Farm
+    local farmButton = Instance.new("TextButton")
+    farmButton.Name = "FarmButton"
+    farmButton.Size = UDim2.new(1, -10, 0, 35)
+    farmButton.Position = UDim2.new(0, 5, 0, 5)
+    farmButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    farmButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    farmButton.Font = Enum.Font.GothamBold
+    farmButton.TextSize = 14
+    farmButton.Text = "🤖 Auto-Farm: OFF"
+    farmButton.Parent = bottomFrame
+    
+    local farmCorner = Instance.new("UICorner")
+    farmCorner.CornerRadius = UDim.new(0, 8)
+    farmCorner.Parent = farmButton
+    
+    farmButton.MouseButton1Click:Connect(function()
+        isAutoFarming = not isAutoFarming
+        if isAutoFarming then
+            farmButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+            farmButton.Text = "🤖 Auto-Farm: ON"
+        else
+            farmButton.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+            farmButton.Text = "🤖 Auto-Farm: OFF"
+        end
+    end)
+    
+    return screenGui, {
+        LevelLabel = levelLabel,
+        StrengthLabel = strengthLabel,
+        MoneyLabel = moneyLabel,
+        HealthLabel = healthLabel,
+        MainFrame = mainFrame,
+        FarmButton = farmButton
+    }
 end
 
--- Função principal de update
-local function update()
+-- Função para atualizar dashboard
+local function updateDashboard(dashboardLabels)
+    playerStats = getPlayerStats()
+    
+    if dashboardLabels.LevelLabel then
+        dashboardLabels.LevelLabel.Text = tostring(playerStats.Level)
+    end
+    if dashboardLabels.StrengthLabel then
+        dashboardLabels.StrengthLabel.Text = string.format("%.0f", playerStats.Strength)
+    end
+    if dashboardLabels.MoneyLabel then
+        dashboardLabels.MoneyLabel.Text = string.format("%,d", math.floor(playerStats.Money))
+    end
+    if dashboardLabels.HealthLabel then
+        dashboardLabels.HealthLabel.Text = string.format("%.0f/%.0f", humanoid.Health, humanoid.MaxHealth)
+    end
+end
+
+-- Função para auto-farm (simples)
+local function autoFarm()
+    if not isAutoFarming or not character or not humanoid or humanoid.Health <= 0 then
+        return
+    end
+    
+    -- Procurar NPCs ou equipamentos para treinar
+    local workspace = game:GetService("Workspace")
+    
+    -- Aqui você pode adicionar lógica customizada do jogo
+    -- Por exemplo: clicar em equipamentos, interagir com NPCs, etc
+end
+
+-- Inicializar
+print("✅ Muscle Legends Dashboard iniciado!")
+print("Pressione F1 para mostrar/esconder o dashboard")
+
+local screenGui, dashboardLabels = createDashboard()
+
+-- Conectar eventos de input
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == CONFIG.ToggleKey then
+        isDashboardVisible = not isDashboardVisible
+        dashboardLabels.MainFrame.Visible = isDashboardVisible
+    end
+end)
+
+-- Conectar atualização de personagem
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    print("Novo personagem detectado!")
+end)
+
+-- Loop de atualização
+RunService.RenderStepped:Connect(function()
     local currentTime = tick()
     
     if currentTime - lastUpdate < CONFIG.UpdateInterval then
@@ -163,79 +317,9 @@ local function update()
     
     lastUpdate = currentTime
     
-    -- Detectar meu papel
-    if detectMyRole() then
-        print("Papel alterado para: " .. myRole)
-        showNotification("MM2 Detector", "Seu papel: " .. myRole, 2)
+    if isDashboardVisible then
+        updateDashboard(dashboardLabels)
     end
     
-    -- Detectar papéis dos outros
-    local otherRoles = detectOtherRoles()
-    
-    -- Atualizar UI se existir
-    local playerGui = player:FindFirstChild("PlayerGui")
-    if playerGui then
-        local roleUI = playerGui:FindFirstChild("RoleDetectorUI")
-        if roleUI then
-            local myRoleLabel = roleUI.MainFrame:FindFirstChild("MyRoleLabel")
-            local othersLabel = roleUI.MainFrame:FindFirstChild("OthersLabel")
-            
-            if myRoleLabel then
-                -- Colorir baseado no papel
-                if myRole == "Murderer" then
-                    myRoleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
-                    myRoleLabel.Text = "🔪 Seu papel: ASSASSINO"
-                elseif myRole == "Sheriff" then
-                    myRoleLabel.TextColor3 = Color3.fromRGB(0, 150, 255)
-                    myRoleLabel.Text = "🔫 Seu papel: XERIFE"
-                else
-                    myRoleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-                    myRoleLabel.Text = "👤 Seu papel: INOCENTE"
-                end
-            end
-            
-            if othersLabel then
-                local roleText = "Papéis dos outros:\n"
-                local count = 0
-                for playerName, role in pairs(otherRoles) do
-                    if count < 3 then -- Mostrar apenas 3 primeiros
-                        roleText = roleText .. playerName .. ": " .. role .. "\n"
-                        count = count + 1
-                    end
-                end
-                
-                if count == 0 then
-                    roleText = "Nenhum outro jogador detectado"
-                end
-                
-                othersLabel.Text = roleText
-            end
-        end
-    end
-end
-
--- Função para monitorar mudanças de personagem
-local function onCharacterRespawned(newCharacter)
-    character = newCharacter
-    myRole = "unknown"
-    roleChanged = true
-    print("Personagem respawned, detectando novo papel...")
-end
-
--- Inicialização
-print("MM2 Role Detector iniciado!")
-print("Seu papel atual: " .. myRole)
-
--- Criar UI
-local screenGui, myRoleLabel, othersLabel = createRoleUI()
-
--- Conectar eventos
-if player.Character then
-    player.CharacterAdded:Connect(onCharacterRespawned)
-end
-
--- Loop de atualização
-RunService.RenderStepped:Connect(update)
-
--- Notificação de script carregado
-showNotification("MM2 Detector", "Script de detecção de papéis ativado!", 2)
+    autoFarm()
+end)
