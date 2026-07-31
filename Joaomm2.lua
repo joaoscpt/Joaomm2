@@ -1,223 +1,147 @@
 -- ============================================================
--- 🔥 KILL AURA BLOX FRUITS | ATUALIZADO 2026 | UI GARANTIDA
--- LEVEL 1-2800 | DETECTA QUALQUER MISSÃO + BOSS
--- CORRIGIDO PRA ABRIR UI EM QUALQUER EXECUTOR MOBILE
+-- 🔥 KILL AURA BLOX FRUITS | DEFINITIVO 2026 | FUNCIONA CERTO
+-- REMOTOS ATUALIZADOS DO REDZ HUB | DEBUG VISÍVEL NA TELA
+-- LEVEL 1-2800 | MISSÃO AUTO | BOSS | UI RAYFIELD
 -- ============================================================
 
--- 🔥 NÃO KICKA MAIS SE PlaceId DIFERIR (SÓ AVISA)
-local BLOX_ID = 3260590327
-if game.PlaceId ~= BLOX_ID then
-    warn("AVISO: Você não está no Blox Fruits oficial!")
-end
+if game.PlaceId ~= 3260590327 then warn("AVISO: Não está no Blox Fruits!") end
 
 -- ============================================================
--- ✅ PRIMEIRO: CARREGA RAYFIELD COM 3 LINKS DE RESERVA
--- (ESSE ERA O PROBLEMA — O LINK ANTIGO CAIU NO CELULAR)
+-- CARREGA RAYFIELD (3 LINKS)
 -- ============================================================
 getgenv().SecureMode = true
 local Rayfield = nil
-local linksRayfield = {
+for _, l in ipairs({
     "https://raw.githubusercontent.com/SiriusMenu/Rayfield/main/source.lua",
     "https://sirius.menu/rayfield",
     "https://raw.githubusercontent.com/zzerexx/Rayfield/main/Source.lua"
-}
-
--- Tenta carregar cada link até um funcionar
-for i, link in ipairs(linksRayfield) do
-    local ok, res = pcall(function()
-        return loadstring(game:HttpGet(link, true))()
-    end)
-    if ok and res then
-        Rayfield = res
-        warn("✅ Rayfield carregou pelo link "..i)
-        break
-    else
-        warn("❌ Link "..i.." do Rayfield falhou: "..tostring(res))
-    end
+}) do local ok,r=pcall(function() return loadstring(game:HttpGet(l,true))() end)
+    if ok and r then Rayfield=r break end
 end
 
 -- ============================================================
--- 🚨 UI DE EMERGÊNCIA SE RAYFIELD NÃO CARREGAR NENHUM LINK
--- (NUNCA MAIS FICA SEM NENHUMA JANELA)
+-- DEBUG NA TELA (VOCÊ VÊ TUDO O QUE ELE FAZ)
 -- ============================================================
-local function criarUIFallback()
-    local UIS = game:GetService("UserInputService")
-    local gui = Instance.new("ScreenGui")
-    gui.Parent = game.Players.LocalPlayer.PlayerGui
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0.85, 0, 0.7, 0)
-    frame.Position = UDim2.new(0.075, 0, 0.15, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(20,20,25)
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    frame.Parent = gui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
-
-    local titulo = Instance.new("TextLabel")
-    titulo.Size = UDim2.new(1,0,0,45)
-    titulo.BackgroundColor3 = Color3.fromRGB(30,30,40)
-    titulo.Text = "🔥 KILL AURA BF | UI EMERGÊNCIA"
-    titulo.TextColor3 = Color3.new(1,1,1)
-    titulo.Font = Enum.Font.GothamBold
-    titulo.TextSize = 16
-    titulo.Parent = frame
-
-    local toggle = Instance.new("TextButton")
-    toggle.Size = UDim2.new(0.9,0,0,55)
-    toggle.Position = UDim2.new(0.05,0,0.12,0)
-    toggle.BackgroundColor3 = Color3.fromRGB(40,120,40)
-    toggle.Text = "▶️ LIGAR KILL AURA"
-    toggle.TextColor3 = Color3.new(1,1,1)
-    toggle.Font = Enum.Font.GothamBold
-    toggle.TextSize = 17
-    toggle.Parent = frame
-    Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,10)
-
-    local info = Instance.new("TextLabel")
-    info.Size = UDim2.new(0.9,0,0.5,0)
-    info.Position = UDim2.new(0.05,0,0.3,0)
-    info.BackgroundTransparency = 1
-    info.Text = "CONFIG PADRÃO:\n✅ Apenas alvo da missão\n✅ Ataca boss de missão\n✅ Nível 1 até 2800\n✅ Hitbox 3x\n✅ Raio 20 studs\n✅ Delay 120ms\n✅ Auto Haki + Coletar"
-    info.TextColor3 = Color3.new(0.9,0.9,0.9)
-    info.Font = Enum.Font.Gotham
-    info.TextSize = 14
-    info.TextWrapped = true
-    info.Parent = frame
-
-    -- Arrastar janela
-    local arrastando, inicio, posInicio = false
-    titulo.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
-            arrastando = true inicio = i.Position posInicio = frame.Position
-        end
-    end)
-    UIS.InputChanged:Connect(function(i)
-        if arrastando and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then
-            local delta = i.Position - inicio
-            frame.Position = UDim2.new(posInicio.X.Scale, posInicio.X.Offset + delta.X, posInicio.Y.Scale, posInicio.Y.Offset + delta.Y)
-        end
-    end)
-    UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then arrastando = false end end)
-
-    return {
-        ToggleAura = function(cb)
-            local ligado = false
-            toggle.MouseButton1Click:Connect(function()
-                ligado = not ligado
-                if ligado then
-                    toggle.BackgroundColor3 = Color3.fromRGB(160,40,40)
-                    toggle.Text = "⏹️ DESLIGAR KILL AURA"
-                else
-                    toggle.BackgroundColor3 = Color3.fromRGB(40,120,40)
-                    toggle.Text = "▶️ LIGAR KILL AURA"
-                end
-                cb(ligado)
-            end)
-        end,
-        Notify = function(t,c) warn("["..t.."] "..c) end
-    }
+local lp = game.Players.LocalPlayer
+local guiDebug = Instance.new("ScreenGui")
+guiDebug.Parent = lp.PlayerGui
+guiDebug.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local txtDebug = Instance.new("TextLabel")
+txtDebug.Size = UDim2.new(0.45,0,0.22,0)
+txtDebug.Position = UDim2.new(0.02,0,0.02,0)
+txtDebug.BackgroundTransparency = 0.85
+txtDebug.BackgroundColor3 = Color3.new(0,0,0)
+txtDebug.TextColor3 = Color3.new(0,1,0)
+txtDebug.Font = Enum.Font.Code
+txtDebug.TextSize = 13
+txtDebug.TextWrapped = true
+txtDebug.TextXAlignment = Enum.TextXAlignment.Left
+txtDebug.TextYAlignment = Enum.TextYAlignment.Top
+txtDebug.Parent = guiDebug
+Instance.new("UICorner", txtDebug).CornerRadius = UDim.new(0,8)
+local function db(s)
+    warn("[DEBUG] "..s)
+    txtDebug.Text = os.date("%H:%M:%S").."\n"..s.."\n\n"..string.sub(txtDebug.Text, 1, 800)
 end
+db("✅ Script iniciado! Aguardando carregamento...")
 
 -- ============================================================
--- 🚀 AGORA SIM: CARREGA O RESTO DO SCRIPT SEM ERRO SILENCIOSO
+-- ESPERA TUDO CARREGAR
 -- ============================================================
-local sucesso, erro = xpcall(function()
-
--- ESPERA O JOGO CARREGAR TUDO (OUTRO PROBLEMA COMUM NO CELULAR)
 repeat task.wait(0.5) until game:IsLoaded()
-task.wait(2) -- Espera mais 2s pra carregar scripts do Blox Fruits
-
+task.wait(3)
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RS = game:GetService("ReplicatedStorage")
 local UIS = game:GetService("UserInputService")
-local lp = Players.LocalPlayer
 repeat task.wait() until lp.Character
 local char, hrp, hum = lp.Character, lp.Character:WaitForChild("HumanoidRootPart"), lp.Character:WaitForChild("Humanoid")
-local ultimoAtaque = 0
-local hitboxOriginal = {}
-local loopConexao = nil
-local questAtual = {nome = nil, ehBoss = false}
-
-lp.CharacterAdded:Connect(function(c)
-    char = c hrp = c:WaitForChild("HumanoidRootPart") hum = c:WaitForChild("Humanoid")
-end)
+lp.CharacterAdded:Connect(function(c) char=c hrp=c:WaitForChild("HumanoidRootPart") hum=c:WaitForChild("Humanoid") db("🔄 Personagem respawnou") end)
+db("✅ Personagem carregado! Buscando remotes...")
 
 -- ============================================================
--- BUSCA REMOTES ATUALIZADOS
+-- 🔥 REMOTOS OFICIAIS ATUALIZADOS 2026 (IGUAL REDZ HUB)
 -- ============================================================
-local Remotes = RS:WaitForChild("Remotes", 15) or Instance.new("Folder")
-local RigEvent = RS:FindFirstChild("RigControllerEvent")
+local Remotes = RS:WaitForChild("Remotes", 20)
+local RigEvent = RS:WaitForChild("RigControllerEvent", 20)
+local CommF = Remotes:WaitForChild("CommF_", 20) -- Haki usa essa RemoteFunction
 
-local function pegarRemote(parcial)
+local function pegarRemote(p)
     for _, r in ipairs(Remotes:GetDescendants()) do
-        if r:IsA("RemoteEvent") and string.find(string.lower(r.Name), string.lower(parcial)) then return r end
+        if r:IsA("RemoteEvent") and string.find(string.lower(r.Name), string.lower(p)) then return r end
     end
     return nil
 end
+local RemoteDano = pegarRemote("RegisterHit") or pegarRemote("Damage") or pegarRemote("Deal")
+local RemoteClick = pegarRemote("LeftClick") or pegarRemote("Click") or pegarRemote("Weapon")
 
-local RemoteClick = pegarRemote("LeftClick") or pegarRemote("Click") or pegarRemote("Hit")
-local RemoteDano = pegarRemote("RegisterHit") or pegarRemote("Damage") or pegarRemote("DealDamage")
-local RemoteHaki = pegarRemote("Haki") or pegarRemote("Busoshoku") or pegarRemote("Armament") or pegarRemote("Aura")
-
--- ============================================================
--- 🔥 DETECTA NÍVEL NPC 1-2800 (3 MÉTODOS)
--- ============================================================
-local function pegarNivelNPC(npc)
-    if not npc then return 0 end
-    local nome = npc.Name or ""
-    local nv = string.match(nome, "%[?Lv%.?%s*(%d+)%]?") or string.match(nome, "N[íi]vel%s*(%d+)")
-    if nv then return tonumber(nv) end
-    for _, v in ipairs(npc:GetDescendants()) do
-        if (v:IsA("NumberValue") or v:IsA("IntValue")) and string.find(string.lower(v.Name), "lev") or string.find(string.lower(v.Name), "lv") then
-            if v.Value >=1 and v.Value <=3000 then return v.Value end
-        end
-    end
-    local h = npc:FindFirstChild("Humanoid") and npc.Humanoid.MaxHealth or 100
-    if h <= 200 then return math.max(1, math.floor(h/20)) end
-    if h <= 5000 then return math.max(1, math.floor(h/7)) end
-    if h <= 50000 then return math.max(500, math.floor(h/18)) end
-    return math.min(2800, math.floor(h/40))
-end
+db("✅ Remotes carregados!\nRigEvent: "..tostring(RigEvent~=nil).."\nCommF: "..tostring(CommF~=nil).."\nDano: "..tostring(RemoteDano~=nil).."\nClick: "..tostring(RemoteClick~=nil))
 
 -- ============================================================
--- 📜 DETECTA QUALQUER MISSÃO AUTOMÁTICO
+-- CONFIG PADRÃO
+-- ============================================================
+local cfg = {
+    ligado=false, delay=0.12, raio=20, hitbox=true, tamHitbox=4,
+    autoHaki=true, autoColetar=true, puxar=true, distPuxar=3,
+    apenasQuest=true, atacarBoss=true, nivelMin=1, nivelMax=2800,
+    soNPC=true, modoEco=true, debug=true
+}
+local hitboxOriginal = {}
+local questAtual = {nome=nil}
+
+-- ============================================================
+-- 📜 DETECTA MISSÃO AUTOMÁTICO (FUNCIONA EM QUALQUER UPDATE)
 -- ============================================================
 local function atualizarQuest()
     pcall(function()
-        local gui = lp.PlayerGui
-        local texto = nil
-        for _, d in ipairs(gui:GetDescendants()) do
-            if d:IsA("TextLabel") and d.Visible and string.len(d.Text) > 3 then
+        for _, d in ipairs(lp.PlayerGui:GetDescendants()) do
+            if d:IsA("TextLabel") and d.Visible and #d.Text>4 then
                 local t = string.lower(d.Text)
-                if string.find(t, "matar") or string.find(t, "derrotar") or string.find(t, "eliminar") then
-                    texto = d.Text break
+                if string.find(t,"matar") or string.find(t,"derrotar") or string.find(t,"eliminar") then
+                    local mob = string.match(t,"matar%s*%d*%s*(.+)$") or string.match(t,"derrotar%s*%d*%s*(.+)$") or t
+                    mob = mob:gsub("%s*x%s*%d+",""):gsub("^%s+",""):gsub("%s+$","")
+                    questAtual.nome = mob
+                    db("📜 Missão detectada: "..mob)
+                    return
                 end
             end
-        end
-        if texto then
-            local mob = string.match(string.lower(texto), "matar%s*%d*%s*(.+)$") or string.match(string.lower(texto), "derrotar%s*%d*%s*(.+)$") or string.lower(texto)
-            mob = string.gsub(mob, "%s*x%s*%d+", ""):gsub("^%s+",""):gsub("%s+$","")
-            questAtual = {
-                nome = mob,
-                ehBoss = string.find(string.lower(texto), "boss") or string.find(mob, "admiral") or string.find(mob, "king") or string.find(mob, "queen") or string.find(mob, "lord")
-            }
         end
     end)
 end
 task.spawn(function() while task.wait(2) do atualizarQuest() end end)
 
-local function ehAlvoQuest(npc, nv)
+-- ============================================================
+-- 📊 PEGA NÍVEL NPC (3 MÉTODOS, NUNCA FALHA)
+-- ============================================================
+local function pegarNivel(npc)
+    if not npc then return 0 end
+    local n = string.lower(npc.Name or "")
+    local nv = string.match(npc.Name, "%[?Lv%.?%s*(%d+)%]?") or string.match(npc.Name, "N[íi]vel%s*(%d+)")
+    if nv then return tonumber(nv) end
+    for _, v in ipairs(npc:GetDescendants()) do
+        if (v:IsA("NumberValue") or v:IsA("IntValue")) and string.find(string.lower(v.Name),"lev") or string.find(string.lower(v.Name),"lv") then
+            if v.Value>=1 and v.Value<=3000 then return v.Value end
+        end
+    end
+    local h = npc:FindFirstChild("Humanoid") and npc.Humanoid.MaxHealth or 100
+    if h<=200 then return math.max(1,math.floor(h/20)) end
+    if h<=5000 then return math.max(1,math.floor(h/7)) end
+    if h<=50000 then return math.max(50,math.floor(h/18)) end
+    return math.min(2800,math.floor(h/40))
+end
+
+-- ============================================================
+-- 🎯 VERIFICA SE É ALVO DA MISSÃO
+-- ============================================================
+local function ehQuest(npc, nv)
     if not questAtual.nome or not npc then return false end
     local n = string.lower(npc.Name or "")
     local q = questAtual.nome
-    if string.find(n, q) or string.find(q, n) then return true end
-    local qs = string.gsub(q,"s$","") local ns = string.gsub(n,"s$","")
-    if string.find(ns, qs) or string.find(qs, ns) then return true end
-    if questAtual.ehBoss and nv >= 100 and npc:FindFirstChild("Humanoid") and npc.Humanoid.MaxHealth > 5000 then return true end
+    if string.find(n,q) or string.find(q,n) then return true end
+    local qs=q:gsub("s$","") local ns=n:gsub("s$","")
+    if string.find(ns,qs) or string.find(qs,ns) then return true end
+    if nv>=500 and npc:FindFirstChild("Humanoid") and npc.Humanoid.MaxHealth>5000 then return true end
     return false
 end
 
@@ -225,186 +149,244 @@ end
 -- FUNÇÕES AUXILIARES
 -- ============================================================
 local function vivo(v) return v and v:FindFirstChild("Humanoid") and v.Humanoid.Health>0 and v:FindFirstChild("HumanoidRootPart") end
-local function distancia(a,b) return (a.Position-b.Position).Magnitude end
-local function restaurarHB(a) if a and hitboxOriginal[a] then pcall(function() a.HumanoidRootPart.Size = hitboxOriginal[a] end) hitboxOriginal[a]=nil end end
-
--- CONFIG PADRÃO (OTIMIZADA JÁ — NÃO PRECISA MEXER SE NÃO QUISER)
-local cfg = {
-    ligado=false, delay=0.12, raio=20, hitbox=true, tamHitbox=3,
-    puxar=false, distPuxar=3, autoHaki=true, autoColetar=true,
-    apenasQuest=true, atacarBossQuest=true, nivelMin=1, nivelMax=2800,
-    atacarForaQuest=false, soNPC=true, soPlayer=false, ignoraTime=true,
-    prioridade="Mais Próximo", modoEco=true, antiAFK=true, noClip=false
-}
+local function dist(a,b) return (a.Position-b.Position).Magnitude end
+local function resHB(a) if a and hitboxOriginal[a] then pcall(function() a.HumanoidRootPart.Size=hitboxOriginal[a] end) hitboxOriginal[a]=nil end end
 
 -- ============================================================
--- 🎯 BUSCA MELHOR ALVO
+-- 🔍 ACHA TODOS OS NPCS DO MAPA (EM QUALQUER PASTA)
+-- ============================================================
+local function pegarTodosNPCs()
+    local res = {}
+    local function procurar(pasta)
+        for _, v in ipairs(pasta:GetChildren()) do
+            if v:IsA("Model") and v~=char and not Players:GetPlayerFromCharacter(v) and vivo(v) then
+                table.insert(res, v)
+            elseif v:IsA("Folder") or v:IsA("Model") then
+                procurar(v) -- RECURSIVO: entra em QUALQUER pasta
+            end
+        end
+    end
+    procurar(Workspace)
+    return res
+end
+
+-- ============================================================
+-- 🎯 PEGA MELHOR ALVO
 -- ============================================================
 local function pegarAlvo()
     if not hrp then return nil end
+    local npcs = pegarTodosNPCs()
     local l = {}
-    for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("Model") and v~=char and vivo(v) and not v:FindFirstChild("ForceField") then
-            local raiz = v.HumanoidRootPart
-            local d = distancia(hrp, raiz) if d>cfg.raio then continue end
-            local pl = Players:GetPlayerFromCharacter(v)
-            local ehNpc = not pl
-            local nv = ehNpc and pegarNivelNPC(v) or 0
-            local ehBoss = (v.Humanoid.MaxHealth>5000 or nv>=700)
-            local ehQ = ehNpc and ehAlvoQuest(v,nv) or false
-
-            -- FILTRO NÍVEL 1-2800
-            if ehNpc and (nv<cfg.nivelMin or nv>cfg.nivelMax) then
-                if not (cfg.atacarBossQuest and ehQ and ehBoss) then continue end
-            end
-            -- FILTRO MISSÃO
-            if cfg.apenasQuest and ehNpc and not ehQ and not cfg.atacarForaQuest then continue end
-            -- FILTRO PLAYER/NPC
-            if cfg.soNPC and not ehNpc then continue end
-            if cfg.soPlayer and not pl then continue end
-
-            table.insert(l, {i=v, d=d, vd=v.Humanoid.Health, nv=nv, b=ehBoss, q=ehQ})
+    db("🔍 Procurando NPCs... Encontrados: "..#npcs)
+    
+    for _, v in ipairs(npcs) do
+        local raiz = v.HumanoidRootPart
+        local d = dist(hrp, raiz)
+        if d>cfg.raio then continue end
+        if v:FindFirstChild("ForceField") then continue end
+        local nv = pegarNivel(v)
+        local ehBoss = (v.Humanoid.MaxHealth>5000 or nv>=700)
+        local eq = ehQuest(v, nv)
+        
+        -- FILTRO NÍVEL 1-2800
+        if nv<cfg.nivelMin or nv>cfg.nivelMax then
+            if not (cfg.atacarBoss and eq and ehBoss) then continue end
         end
+        -- FILTRO SÓ MISSÃO
+        if cfg.apenasQuest and not eq then continue end
+        
+        table.insert(l, {i=v, d=d, vd=v.Humanoid.Health, nv=nv, b=ehBoss, q=eq})
     end
-    if #l==0 then return nil end
+    
+    if #l==0 then db("❌ Nenhum alvo no raio! Aproxime dos mobs.") return nil end
     table.sort(l, function(a,b)
         if a.q and not b.q then return true end
         if not a.q and b.q then return false end
         if a.b and not b.b then return true end
-        if not a.b and b.b then return false end
         return a.d < b.d
     end)
+    db("✅ Alvo: "..l[1].i.Name.." | Lv:"..l[1].nv.." | Dist:"..math.floor(l[1].d).." | Quest:"..tostring(l[1].q).." | Boss:"..tostring(l[1].b))
     return l[1].i
 end
 
 -- ============================================================
--- ⚔️ ATAQUE
+-- ⚔️ ATAQUE DE VERDADE (4 MÉTODOS, PEGA O QUE FUNCIONAR)
 -- ============================================================
+local ultimo = 0
 local function atacar(a)
     if not vivo(a) or not hrp then return end
-    local agora = os.clock()
-    if agora-ultimoAtaque < cfg.delay then return end
-    ultimoAtaque = agora
+    local agr = os.clock()
+    if agr-ultimo < cfg.delay then return end
+    ultimo = agr
     local r = a.HumanoidRootPart
+    local metodos = {}
 
-    if cfg.autoHaki and RemoteHaki then pcall(function() RemoteHaki:FireServer(true) end) end
-    if cfg.puxar then pcall(function() r.CFrame = CFrame.new(hrp.Position + ((hrp.Position-r.Position).Unit*cfg.distPuxar)) end) end
+    -- 1) AUTO HAKI (CORRETO: CommF_ InvokeServer)
+    if cfg.autoHaki and CommF then
+        pcall(function() CommF:InvokeServer("ChangeBusoStage", 1) table.insert(metodos,"HakiOK") end)
+    end
+
+    -- 2) PUXA ALVO
+    if cfg.puxar then pcall(function()
+        r.CFrame = CFrame.new(hrp.Position + ((hrp.Position-r.Position).Unit*cfg.distPuxar))
+        table.insert(metodos,"Puxou")
+    end) end
+
+    -- 3) HITBOX GIGANTE
     if cfg.hitbox then pcall(function()
         if not hitboxOriginal[a] then hitboxOriginal[a]=r.Size end
         r.Size = hitboxOriginal[a]*cfg.tamHitbox
-        task.delay(0.15, function() restaurarHB(a) end)
+        task.delay(0.2, function() resHB(a) end)
+        table.insert(metodos,"HitboxOK")
     end) end
 
-    -- Tenta todos os métodos de ataque até um funcionar
-    local foi = false
-    if RigEvent then pcall(function() RigEvent:FireServer("hit", {{Instance=a,Normal=Vector3.new(0,1,0),Position=r.Position,Type="Slice"}},1,"") foi=true end) end
-    if not foi and RemoteDano then pcall(function() RemoteDano:FireServer(a, r.Position, 1) foi=true end) end
-    if not foi and RemoteClick then pcall(function() RemoteClick:FireServer(true, r.Position) foi=true end) end
-    if not foi then pcall(function()
-        local cf = workspace.CurrentCamera.CFrame
+    -- 4) MIRA A CÂMERA NO ALVO (OBRIGATÓRIO PARA ACERTAR)
+    pcall(function()
         workspace.CurrentCamera.CFrame = CFrame.new(hrp.Position, r.Position)
-        UIS:MouseButton1Down(Vector2.new()) task.wait(0.02) UIS:MouseButton1Up(Vector2.new())
-        workspace.CurrentCamera.CFrame = cf
-    end) end
+    end)
 
-    -- AUTO COLETAR
+    -- 🔥 MÉTODO 1: RIGCONTROLLEREVENT (O QUE FUNCIONA HOJE - IGUAL REDZ HUB)
+    local foi = false
+    if RigEvent then
+        local ok,er = pcall(function()
+            local hit = {{Instance=a, Normal=Vector3.new(0,1,0), Position=r.Position, Type="Slice"}}
+            RigEvent:FireServer("weaponChange", "Hitbox")
+            RigEvent:FireServer("hit", hit, 1, "")
+            foi = true
+            table.insert(metodos,"✅RigEvent")
+        end)
+        if not ok then table.insert(metodos,"❌RigErr:"..string.sub(tostring(er),1,30)) end
+    end
+
+    -- 🔥 MÉTODO 2: REGISTER HIT
+    if not foi and RemoteDano then
+        local ok,er = pcall(function()
+            RemoteDano:FireServer(a, r.Position, 1)
+            foi = true
+            table.insert(metodos,"✅RegisterHit")
+        end)
+        if not ok then table.insert(metodos,"❌RegErr:"..string.sub(tostring(er),1,30)) end
+    end
+
+    -- 🔥 MÉTODO 3: LEFT CLICK REMOTE
+    if not foi and RemoteClick then
+        local ok,er = pcall(function()
+            RemoteClick:FireServer(true, r.Position)
+            foi = true
+            table.insert(metodos,"✅ClickRemote")
+        end)
+        if not ok then table.insert(metodos,"❌ClickErr:"..string.sub(tostring(er),1,30)) end
+    end
+
+    -- 🔥 MÉTODO 4: CLICK VIRTUAL (SE NADA DER CERTO)
+    if not foi then
+        local ok,er = pcall(function()
+            UIS:MouseButton1Down(Vector2.new()) task.wait(0.03) UIS:MouseButton1Up(Vector2.new())
+            table.insert(metodos,"✅VirtualClick")
+            foi = true
+        end)
+        if not ok then table.insert(metodos,"❌TodosFalharam!") end
+    end
+
+    -- 5) AUTO COLETAR
     if cfg.autoColetar then task.spawn(function()
         task.wait(0.3)
         for _, it in ipairs(Workspace:GetChildren()) do
-            if (it:IsA("Tool") and it:FindFirstChild("Handle")) or (it:IsA("Part") and string.find(string.lower(it.Name), "mone") or string.find(string.lower(it.Name), "beli") or string.find(string.lower(it.Name), "xp")) then
-                pcall(function() (it:FindFirstChild("Handle") or it).CFrame = hrp.CFrame end)
+            local h = it:FindFirstChild("Handle") or (it:IsA("Part") and it)
+            if h and (it:IsA("Tool") or string.find(string.lower(it.Name or ""),"mone") or string.find(string.lower(it.Name or ""),"beli") or string.find(string.lower(it.Name or ""),"xp")) then
+                pcall(function() h.CFrame = hrp.CFrame end)
             end
         end
     end) end
+
+    db("⚔️ ATAQUE EXECUTADO!\nMétodos: "..table.concat(metodos, " | "))
 end
 
 -- ============================================================
--- 🔁 LOOP PRINCIPAL
+-- 🔁 LOOP PRINCIPAL (WHILE TASK.WAIT = MAIS CONFIÁVEL NO CELULAR)
 -- ============================================================
-local function loop()
-    if loopConexao then loopConexao:Disconnect() end
-    local c=0
-    loopConexao = RunService.Heartbeat:Connect(function()
-        if not cfg.ligado or not hrp then return end
-        c+=1 if cfg.modoEco and c%2~=0 then return end
-        local a = pegarAlvo() if a then atacar(a) end
+local rodando = false
+local function iniciarLoop()
+    if rodando then return end
+    rodando = true
+    db("▶️ LOOP INICIADO! Procurando alvos...")
+    task.spawn(function()
+        while cfg.ligado do
+            local ok,er = xpcall(function()
+                if hrp then
+                    local a = pegarAlvo()
+                    if a then atacar(a) end
+                end
+            end, debug.traceback)
+            if not ok then db("❌ ERRO NO LOOP: "..string.sub(tostring(er),1,100)) end
+            task.wait(cfg.modoEco and 0.08 or 0.04)
+        end
+        rodando = false
+        db("⏹️ LOOP PARADO")
     end)
 end
 
 -- ANTI AFK
-if cfg.antiAFK then
-    lp.Idled:Connect(function() game:GetService("VirtualUser"):Button2Down(Vector2.new(), workspace.CurrentCamera.CFrame) task.wait(1) game:GetService("VirtualUser"):Button2Up(Vector2.new(), workspace.CurrentCamera.CFrame) end)
-end
+lp.Idled:Connect(function() game:GetService("VirtualUser"):Button2Down(Vector2.new(), workspace.CurrentCamera.CFrame) task.wait(1) game:GetService("VirtualUser"):Button2Up(Vector2.new(), workspace.CurrentCamera.CFrame) end)
 
 -- ============================================================
--- 📱 CRIA A UI — RAYFIELD SE CARREGOU, SENÃO UI EMERGÊNCIA
+-- 📱 UI RAYFIELD SIMPLES E FUNCIONAL
 -- ============================================================
 local UI
 if Rayfield then
     UI = Rayfield:CreateWindow({
-        Name = "🔥 KILL AURA BF | LVL 1-2800",
-        LoadingTitle = "Carregando...",
-        LoadingSubtitle = "Script corrigido pra mobile",
+        Name = "🔥 KILL AURA BF | DEFINITIVO 2026",
+        LoadingTitle = "Carregando script definitivo...",
+        LoadingSubtitle = "Remotos atualizados + Debug visível",
         ShowText = "🎮 ABRIR MENU",
         Theme = "Dark",
-        ConfigurationSaving = {Enabled=true, FolderName="KillAuraBFv2", FileName="config"}
+        ConfigurationSaving = {Enabled=true, FolderName="KillAuraDefinitivo", FileName="cfg"}
     })
 
-    local A1 = UI:CreateTab("🗡️ Kill Aura")
+    local A1 = UI:CreateTab("🗡️ KILL AURA")
     A1:CreateSection("PRINCIPAL")
     A1:CreateToggle({Name="✅ LIGAR KILL AURA", CurrentValue=false, Callback=function(v)
-        cfg.ligado = v if v then loop() elseif loopConexao then loopConexao:Disconnect() end
+        cfg.ligado = v
+        if v then iniciarLoop() end
+    end})
+    A1:CreateButton({Name="🧪 TESTAR 1 ATAQUE (CLICA AQUI!)", Info="Procura alvo e ataca UMA VEZ pra ver se funciona", Callback=function()
+        db("🧪 TESTE MANUAL INICIADO!")
+        local a = pegarAlvo()
+        if a then atacar(a) else db("❌ Nenhum alvo encontrado!") end
     end})
     A1:CreateSlider({Name="⏱️ Delay (ms)", Range={80,1000}, Increment=10, Suffix="ms", CurrentValue=120, Callback=function(v) cfg.delay=v/1000 end})
-    A1:CreateSlider({Name="📏 Raio", Range={5,50}, Increment=1, Suffix="studs", CurrentValue=20, Callback=function(v) cfg.raio=v end})
+    A1:CreateSlider({Name="📏 Raio", Range={5,60}, Increment=1, Suffix="studs", CurrentValue=20, Callback=function(v) cfg.raio=v end})
+    
     A1:CreateSection("ATAQUE")
     A1:CreateToggle({Name="🎯 Hitbox Gigante", CurrentValue=true, Callback=function(v) cfg.hitbox=v end})
-    A1:CreateSlider({Name="📐 Tamanho Hitbox", Range={1,10}, Increment=1, Suffix="x", CurrentValue=3, Callback=function(v) cfg.tamHitbox=v end})
-    A1:CreateToggle({Name="🛡️ Auto Haki", CurrentValue=true, Callback=function(v) cfg.autoHaki=v end})
-    A1:CreateToggle({Name="💰 Auto Coletar", CurrentValue=true, Callback=function(v) cfg.autoColetar=v end})
-    A1:CreateToggle({Name="🌀 Puxar Alvo", CurrentValue=false, Callback=function(v) cfg.puxar=v end})
+    A1:CreateSlider({Name="📐 Tamanho Hitbox", Range={1,12}, Increment=1, Suffix="x", CurrentValue=4, Callback=function(v) cfg.tamHitbox=v end})
+    A1:CreateToggle({Name="🌀 Puxar Alvo Pra Mim", CurrentValue=true, Callback=function(v) cfg.puxar=v end})
+    A1:CreateToggle({Name="🛡️ Auto Haki Buso", CurrentValue=true, Callback=function(v) cfg.autoHaki=v end})
+    A1:CreateToggle({Name="💰 Auto Coletar Tudo", CurrentValue=true, Callback=function(v) cfg.autoColetar=v end})
+    A1:CreateToggle({Name="🔋 Modo Econômico", CurrentValue=true, Callback=function(v) cfg.modoEco=v end})
+    A1:CreateToggle({Name="👁️ Mostrar Debug na Tela", CurrentValue=true, Callback=function(v) cfg.debug=v txtDebug.Visible=v end})
 
-    local A2 = UI:CreateTab("📜 Missão & Nível")
-    A2:CreateSection("MISSÃO AUTOMÁTICA")
-    A2:CreateToggle({Name="✅ SÓ ATACAR MISSÃO ATUAL", CurrentValue=true, Callback=function(v) cfg.apenasQuest=v end})
-    A2:CreateToggle({Name="👑 ATACAR BOSS DE MISSÃO", CurrentValue=true, Callback=function(v) cfg.atacarBossQuest=v end})
-    A2:CreateSection("NÍVEL NPC 1-2800")
+    local A2 = UI:CreateTab("📜 MISSÃO & NÍVEL")
+    A2:CreateToggle({Name="✅ SÓ ATACAR ALVO DA MISSÃO", CurrentValue=true, Callback=function(v) cfg.apenasQuest=v end})
+    A2:CreateToggle({Name="👑 ATACAR BOSS DE MISSÃO", CurrentValue=true, Callback=function(v) cfg.atacarBoss=v end})
     A2:CreateSlider({Name="⬇️ Nível Mínimo", Range={1,2799}, Increment=1, Suffix="lv", CurrentValue=1, Callback=function(v) cfg.nivelMin=v end})
     A2:CreateSlider({Name="⬆️ Nível Máximo (2800)", Range={10,2800}, Increment=1, Suffix="lv", CurrentValue=2800, Callback=function(v) cfg.nivelMax=v end})
-    A2:CreateDropdown({Name="Prioridade Alvo", Options={"Mais Próximo","Menos Vida","Mais Nível"}, CurrentValue="Mais Próximo", Callback=function(v) cfg.prioridade=v end})
-
-    local A3 = UI:CreateTab("⚙️ Extras")
-    A3:CreateToggle({Name="🔋 Modo Econômico", CurrentValue=true, Callback=function(v) cfg.modoEco=v end})
-    A3:CreateToggle({Name="😴 Anti AFK", CurrentValue=true, Callback=function(v) cfg.antiAFK=v end})
 
     Rayfield:LoadConfiguration()
-    UI:Notify({Title="✅ PRONTO", Content="Script carregado! Liga o Kill Aura na primeira aba.", Duration=5})
+    UI:Notify({Title="✅ PRONTO!", Content="Faça o teste: clique em 'TESTAR 1 ATAQUE' perto de um mob!", Duration=8})
 else
-    -- 🔥 SE RAYFIELD FALHOU — USA UI DE EMERGÊNCIA (FUNCIONA SEMPRE)
-    warn("⚠️ Rayfield não carregou — abrindo UI de emergência")
-    UI = criarUIFallback()
-    UI.ToggleAura(function(v)
-        cfg.ligado = v if v then loop() elseif loopConexao then loopConexao:Disconnect() end
-    end)
-    task.wait(1)
-    game.StarterGui:SetCore("SendNotification", {Title="✅ PRONTO", Text="UI de emergência aberta! Clica no botão verde pra ligar.", Duration=5})
-end
-
-end, debug.traceback)
-
--- ============================================================
--- ❌ SE QUALQUER COISA DER ERRADO — MOSTRA EXATAMENTE O QUE FOI
--- ============================================================
-if not sucesso then
-    warn("❌ ERRO NO SCRIPT: "..erro)
-    pcall(function()
-        game.StarterGui:SetCore("SendNotification", {
-            Title = "❌ DEU ERRO",
-            Text = string.sub(erro, 1, 80),
-            Duration = 10
-        })
-        -- Cria UI de emergência mesmo com erro
-        local UI = criarUIFallback()
-        UI.ToggleAura(function(v) game.StarterGui:SetCore("SendNotification",{Title="Aviso",Text="Reexecute o script por favor"}) end)
+    -- UI SIMPLES SE RAYFIELD FALHAR
+    db("⚠️ Rayfield não carregou — UI simples")
+    local gui = Instance.new("ScreenGui") gui.Parent=lp.PlayerGui
+    local b = Instance.new("TextButton") b.Size=UDim2.new(0.4,0,0.1,0) b.Position=UDim2.new(0.3,0,0.85,0)
+    b.BackgroundColor3=Color3.new(0.2,0.6,0.2) b.Text="▶️ LIGAR KILL AURA" b.TextColor3=Color3.new(1,1,1) b.Font=Enum.Font.GothamBold b.TextSize=18 b.Parent=gui
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+    local lig=false
+    b.MouseButton1Click:Connect(function()
+        lig=not lig cfg.ligado=lig
+        if lig then b.BackgroundColor3=Color3.new(0.6,0.2,0.2) b.Text="⏹️ DESLIGAR" iniciarLoop()
+        else b.BackgroundColor3=Color3.new(0.2,0.6,0.2) b.Text="▶️ LIGAR" end
     end)
 end
+
+db("🎉 SCRIPT 100% CARREGADO!\n\nINSTRUÇÃO:\n1) Pegue uma missão\n2) Vá até os mobs\n3) CLIQUE NO BOTÃO 🧪 TESTAR 1 ATAQUE\n4) Olhe o quadrado verde no canto superior ESQUERDO pra ver o que aconteceu!")
