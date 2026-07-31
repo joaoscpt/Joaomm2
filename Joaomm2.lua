@@ -1,5 +1,5 @@
--- Joao Hub V8 - Kill Aura REAL - Bate de verdade
-getgenv().JoaoHub = { AFK = false, Speed = 250, Height = 25, Weapon = "Melee" }
+-- Joao Hub V9 - Buddha Aura - Kill aura de verdade
+getgenv().JoaoHub = { AFK = false, Speed = 250, Height = 20 }
 
 local Players = game:GetService("Players")
 local TW = game:GetService("TweenService")
@@ -18,42 +18,36 @@ function Go(cf)
     local dist = (hrp.Position - cf.Position).Magnitude
     local tw = TW:Create(part, TweenInfo.new(dist/getgenv().JoaoHub.Speed, Enum.EasingStyle.Linear), {CFrame = cf})
     tw:Play()
-    repeat task.wait() pcall(function() hrp.CFrame = part.CFrame hrp.Velocity = Vector3.new(0,0,0) for _,v in pairs(lp.Character:GetChildren()) do if v:IsA("BasePart") then v.CanCollide = false end end end) until (part.Position - cf.Position).Magnitude < 8 or not getgenv().JoaoHub.AFK
+    repeat task.wait() pcall(function() hrp.CFrame = part.CFrame hrp.Velocity = Vector3.new(0,0,0) end) until (part.Position - cf.Position).Magnitude < 8 or not getgenv().JoaoHub.AFK
 end
 
-function Equip()
-    pcall(function()
-        local typeW = getgenv().JoaoHub.Weapon
-        local backpack = lp.Backpack
-        local char = lp.Character
-        if char:FindFirstChildOfClass("Tool") then return end -- já tem ferramenta
-        for _,tool in pairs(backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                if typeW == "Melee" and (tool.ToolTip == "Melee" or tool.Name:find("Combat") or tool.Name:find("Electric") or tool.Name:find("Elétrico")) then char.Humanoid:EquipTool(tool) return end
-                if typeW == "Sword" and tool.ToolTip == "Sword" then char.Humanoid:EquipTool(tool) return end
-            end
-        end
-    end)
-end
-
--- KILL AURA SEPARADO QUE BATE DE VERDADE
+-- AURA DA BUDDHA DESPERTADA - BATE EM ÁREA
 task.spawn(function()
-    while task.wait(0.08) do
+    while task.wait(0.05) do
         if getgenv().JoaoHub.AFK then
             pcall(function()
-                Equip()
                 local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                for _,mob in pairs(workspace.Enemies:GetChildren()) do
-                    if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 and (hrp.Position - mob.HumanoidRootPart.Position).Magnitude < 70 then
-                        -- METODO REAL QUE FUNCIONA NO BLOX ATUAL
-                        for i=1,6 do
-                            RS.Remotes.RigControllerEvent:FireServer("Hit", {mob}, 1, "")
-                            VIM:SendMouseButtonEvent(0,0,0,true,game,1)
-                            VIM:SendMouseButtonEvent(0,0,0,false,game,1)
-                            local tool = lp.Character:FindFirstChildOfClass("Tool")
-                            if tool then tool:Activate() end
+                -- Aumenta a hitbox da Buddha
+                if lp.Character:FindFirstChild("HumanoidRootPart") then
+                    for _,v in pairs(lp.Character:GetChildren()) do
+                        if v:IsA("BasePart") and v.CanCollide == false then
+                            -- deixa o corpo gigante pra aura pegar
+                            if v.Name == "HumanoidRootPart" then
+                                v.Size = Vector3.new(65,65,65)
+                                v.Transparency = 1
+                            end
                         end
+                    end
+                end
+                -- Dano em área igual Buddha
+                for _,mob in pairs(workspace.Enemies:GetChildren()) do
+                    if mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 and (hrp.Position - mob.HumanoidRootPart.Position).Magnitude < 65 then
+                        -- 3 jeitos pra garantir o hit
+                        RS.Remotes.RigControllerEvent:FireServer("Hit", {mob}, 1, "")
+                        RS.Remotes.RigControllerEvent:FireServer("Hit", {mob}, 2, "")
+                        firetouchinterest(hrp, mob.HumanoidRootPart, 0)
+                        firetouchinterest(hrp, mob.HumanoidRootPart, 1)
                     end
                 end
             end)
@@ -62,11 +56,8 @@ task.spawn(function()
 end)
 
 local Quests = {
-    {1250, "Zombie", "ZombieQuest", 1, CFrame.new(-5497,48,-795), CFrame.new(-5600,48,-800)},
-    {1300, "Vampire", "ZombieQuest", 2, CFrame.new(-5497,48,-795), CFrame.new(-5800,48,-900)},
     {1302, "Snow Trooper", "SnowMountainQuest", 1, CFrame.new(608,401,-5370), CFrame.new(600,400,-5300)},
     {1325, "Winter Warrior", "SnowMountainQuest", 2, CFrame.new(608,401,-5370), CFrame.new(650,400,-5400)},
-    {1350, "Lab Subordinate", "IceSideQuest", 1, CFrame.new(-5803,82,-3043), CFrame.new(-5900,82,-3100)},
 }
 
 function GetQuest()
@@ -85,16 +76,13 @@ task.spawn(function()
                     Go(q[5]) task.wait(0.8)
                     RS.Remotes.CommF_:InvokeServer("StartQuest", q[3], q[4])
                 else
-                    local found = false
                     for _,mob in pairs(workspace.Enemies:GetChildren()) do
-                        if mob.Name == q[2] and mob.Humanoid.Health > 0 and mob:FindFirstChild("HumanoidRootPart") then
-                            found = true
+                        if mob.Name == q[2] and mob.Humanoid.Health > 0 then
                             Go(mob.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().JoaoHub.Height, 0))
                             for _,v in pairs(workspace.Enemies:GetChildren()) do if v.Name == q[2] then pcall(function() v.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame v.Humanoid.WalkSpeed = 0 end) end end
                             break
                         end
                     end
-                    if not found then Go(q[6]) end
                 end
             end)
         end
@@ -107,9 +95,8 @@ local b = Instance.new("TextButton", sg) b.Size = UDim2.new(0,100,0,50) b.Positi
 b.MouseButton1Click:Connect(function() VIM:SendKeyEvent(true, Enum.KeyCode.End, false, game) task.wait() VIM:SendKeyEvent(false, Enum.KeyCode.End, false, game) end)
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local Window = Fluent:CreateWindow({Title = "Joao Hub",SubTitle = "V8 KILL AURA REAL",TabWidth = 160,Size = UDim2.fromOffset(520,380),Theme = "Dark",MinimizeKey = Enum.KeyCode.End})
+local Window = Fluent:CreateWindow({Title = "Joao Hub",SubTitle = "V9 BUDDHA AURA",TabWidth = 160,Size = UDim2.fromOffset(480,320),Theme = "Dark",MinimizeKey = Enum.KeyCode.End})
 local Tab = Window:AddTab({Title = "AFK", Icon = ""})
-Tab:AddToggle("AFK", {Title = "Auto Farm + Kill Aura", Default = false}):OnChanged(function(v) getgenv().JoaoHub.AFK = v end)
-Tab:AddDropdown("Weapon", {Title = "Arma", Values = {"Melee", "Sword"}, Default = 1}):OnChanged(function(v) getgenv().JoaoHub.Weapon = v end)
+Tab:AddToggle("AFK", {Title = "Auto Farm + Buddha Aura", Default = false}):OnChanged(function(v) getgenv().JoaoHub.AFK = v end)
 Tab:AddSlider("Speed", {Title = "Tween Speed MAX 300", Default = 250, Min = 50, Max = 300, Rounding = 0}):OnChanged(function(v) getgenv().JoaoHub.Speed = v end)
-Tab:AddSlider("Height", {Title = "Altura em cima do mob", Default = 25, Min = 5, Max = 50, Rounding = 0}):OnChanged(function(v) getgenv().JoaoHub.Height = v end)
+Tab:AddSlider("Height", {Title = "Altura em cima do mob", Default = 20, Min = 5, Max = 50, Rounding = 0}):OnChanged(function(v) getgenv().JoaoHub.Height = v end)
